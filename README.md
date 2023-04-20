@@ -1,3 +1,8 @@
+```
+java -jar app-0.0.1.jar
+```
+
+```
 # Required connection configs for Kafka producer, consumer, and admin
 bootstrap.servers=localhost:9092
 client.dns.lookup=use_all_dns_ips
@@ -20,3 +25,5 @@ srm.mig.target.cluster.name=m16cdc
 srm.mig.target.key.format=["$CONNECTORNAME",{"cluster":"$CLUSTERNAME","topic":"$TOPICNAME","partiton":$PARTITION}]
 srm.mig.target.value.format={"offset":${OFFSET}}
 #srm.mig.target.key.format=["${CONNECTORNAME}",{"topic":"${TOPICNAME}","partiton":${PARTITION}}]
+
+```
