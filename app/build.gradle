@@ -52,10 +52,18 @@ dependencies {
 }
 
 jar {
-  manifest {
-    attributes(
-      "Class-Path": configurations.compileClasspath.collect { it.getName() }.join(" "),
-      "Main-Class": "io.confluent.spark.App"
-    )
-  }
-}
+    duplicatesStrategy(DuplicatesStrategy.EXCLUDE)
+
+    manifest {
+        attributes(
+                'Main-Class': 'io.confluent.spark.App'
+        )
+    }
+
+    from {
+        configurations.runtimeClasspath.collect {
+            it.isDirectory() ? it : zipTree(it)
+        }
+    }
+
+ }
