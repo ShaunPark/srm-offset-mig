@@ -1,0 +1,8 @@
+./kafka-console-producer --bootstrap-server localhost:9092 --topic src_topic --property parse.key=true --property key.separator="|"
+
+>["replicator",{"topic":"london","partition":0}]|{"offset":125}
+>["replicator",{"topic":"london","partition":1}]|{"offset":89}
+>["replicator",{"topic":"london","partition":2}]}|{"offset":135}
+
+
+["replicator",{"topic":"london","partition":2}]}|{"offset":333}
