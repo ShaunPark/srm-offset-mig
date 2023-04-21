@@ -44,26 +44,26 @@ public class App {
 
     public static void main(String[] args) {
         Options options = new Options();
-        Option cfgFile   = Option.builder("f")
-        .argName("file")
-        .hasArg()
-        .desc("config file")
-        .build();
-        // add t option
-        options.addOption(cfgFile);
-        CommandLineParser parser = new DefaultParser();
+    
+        options.addOption(new Option("f", "file", true, "properties file."));
+        options.addOption(new Option("t", "test", false, "is test"));
+                CommandLineParser parser = new DefaultParser();
         App app = new App();
 
         try {
             Properties props = new Properties();
             CommandLine cmd = parser.parse(options, args);
-            String filename = cmd.getOptionValue("file");
+            String filename = cmd.getOptionValue("f");
+            boolean isTest = cmd.hasOption("t");
 
-
+            app.logger.info("###### Properties file name : " + filename);
+            
             if( filename != null ) {
                 props.load(new FileReader(filename));
-            } else {
+            } else if ( isTest ) {
                 props.load(app.getClass().getClassLoader().getResource("server.properties").openStream());
+            } else {
+                app.logger.error("properties fils open error");
             }
 
             StreamExecutionContext.setSerdesConfig(props);
