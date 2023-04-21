@@ -2,12 +2,5 @@
 .gradle
 
 # Ignore Gradle build output directory
-app/build/classes
-app/build/distributions
-app/build/generated
-app/build/reports
-app/build/resources
-app/build/scripts
-app/build/test-results
-app/build/tmp
+app/build
 app/bin

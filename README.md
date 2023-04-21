@@ -27,3 +27,6 @@ srm.mig.target.value.format={"offset":${OFFSET}}
 #srm.mig.target.key.format=["${CONNECTORNAME}",{"topic":"${TOPICNAME}","partiton":${PARTITION}}]
 
 ```
+
+
+https://drive.google.com/file/d/1feogygcAqAjL5MkPmLq3AL6XczSSNOAe/view?usp=sharing
