@@ -11,3 +11,4 @@ app/build/scripts
 app/build/test-results
 app/build/tmp
 app/bin
+hosts.yml

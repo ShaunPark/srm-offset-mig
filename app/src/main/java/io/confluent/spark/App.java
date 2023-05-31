@@ -7,6 +7,7 @@ import org.apache.commons.cli.CommandLine;
 
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.Map;
 import java.util.Properties;
 
 import org.apache.commons.cli.CommandLineParser;
@@ -14,6 +15,7 @@ import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
+import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KeyValue;
@@ -23,10 +25,9 @@ import org.apache.kafka.streams.kstream.Produced;
 import org.json.simple.parser.JSONParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.json.simple.JSONArray;
-import org.json.simple.JSONObject;
 import org.apache.kafka.streams.kstream.Consumed;
 import org.apache.kafka.streams.kstream.KeyValueMapper;
+import org.apache.kafka.streams.kstream.Printed;
 
 
 public class App {
@@ -37,10 +38,7 @@ public class App {
 
     private String fromTopic;
     private String toTopic;
-    private String clusterName;
-    private String connectorName;
-    private String keyFormat;
-    // private String valueFormat;
+    private TargetOffsetLoader tgt;
 
     public static void main(String[] args) {
         Options options = new Options();
@@ -60,22 +58,26 @@ public class App {
             
             if( filename != null ) {
                 props.load(new FileReader(filename));
-            } else if ( isTest ) {
+            }else {
+            // } else if ( isTest ) {
                 props.load(app.getClass().getClassLoader().getResource("server.properties").openStream());
-            } else {
-                app.logger.error("properties fils open error");
+            // } else {
+            //     app.logger.error("properties fils open error");
             }
 
             StreamExecutionContext.setSerdesConfig(props);
 
             app.getProps(props);
+            app.processOffsetKey(props);
+    
+            app.logger.info("###### End of Load Target Key " + filename);
 
             Topology topology = app.buildTopology();
             KafkaStreams streams = new KafkaStreams(topology, props);
             Runtime.getRuntime().addShutdownHook(new Thread(streams::close));
 
             streams.start();
-    
+   
         } catch(ParseException e) {
             e.printStackTrace();
         } catch(IOException e) {
@@ -84,29 +86,21 @@ public class App {
             e.printStackTrace();
         }
     }
+
+    private void processOffsetKey(Properties props) throws Exception {
+        tgt = new TargetOffsetLoader(this.toTopic, props);
+        Map<TopicPartition, Long> offsetMap = tgt.getLasteOffsets(props);
+        
+        offsetMap.forEach((k, v)-> { logger.info("######## offset " + v.longValue());});
+        tgt.loaddOffsets(props, offsetMap);
+    }
     
     private void getProps(Properties props) throws Exception {
         this.fromTopic = errorIfEmpty(props.getProperty("srm.mig.source.topic.name"));
         this.toTopic = errorIfEmpty(props.getProperty("srm.mig.target.topic.name"));
-        this.connectorName = props.getProperty("srm.mig.target.connector.name");
-        this.keyFormat = errorIfEmpty(props.getProperty("srm.mig.target.key.format"));        
-        this.clusterName = props.getProperty("srm.mig.target.cluster.name");
-
-        if( isNullOrEmpty(this.clusterName)) {
-            if(this.keyFormat.indexOf("CLUSTERNAME") < 0 ) {
-                this.clusterName = null;
-            } else {
-                throw new Exception("key format has '$CLUSTERNAME' buth 'srm.mig.target.cluster.name' in properties file is empty");
-            }
-        }
-        // this.valueFormat = errorIfEmpty(props.getProperty("srm.mig.target.value.format"));
 
         logger.info("fromTopic : " + fromTopic);
         logger.info("toTopic : " + toTopic);
-        logger.info("connectorName : " + connectorName);
-        logger.info("keyFormat : " + keyFormat);
-        logger.info("clusterName : " + clusterName);
-        
     }
 
     private String errorIfEmpty(String s) throws Exception {
@@ -122,31 +116,8 @@ public class App {
 
     JSONParser parser = new JSONParser();
 
-    private String createKey(String key)  {
-        try {
-            Object obj = parser.parse(key); 
-            JSONArray jsonArr = (JSONArray)obj;
-    
-            // jsonArr에서 하나씩 JSONObject로 cast해서 사용
-            if (jsonArr.size() == 2){
-                JSONObject jsonObj = (JSONObject)jsonArr.get(1);
-                String topicName = (String)jsonObj.get("topic");
-                String partition = jsonObj.get("partition").toString();
-                String sb = new StringBuilder(keyFormat).toString();
-                sb = sb.replaceAll("\\$CONNECTORNAME", connectorName).replaceAll("\\$TOPICNAME", topicName).replaceAll("\\$PARTITION", partition);
-                if( clusterName != null) {
-                    sb = sb.replaceAll("\\$CLUSTERNAME", clusterName);
-                }
-
-                return sb;
-            } 
-            logger.info("return 1");
-            return "";
-        } catch( Exception e)  {
-            logger.error("fail to convert key", e);
-            return "";
-        }
-
+    private String getKey(String key)  {
+        return tgt.getKey(key);
     }
 
     private Topology buildTopology() {
@@ -155,7 +126,7 @@ public class App {
         .map(new KeyValueMapper<String, String, KeyValue<String, String>>() {
             @Override
             public KeyValue<String, String> apply(String k, String v) {
-                    String key = createKey(k);
+                    String key = getKey(k);
                     if( key == null || key.length() <= 0 ) {
                         logger.error("skip message : invalid key  '" + k + "'");
                     }
@@ -163,6 +134,7 @@ public class App {
                 }
             })
         .filter((key, value) -> key != null && key.length() > 0)
+        //.print(Printed.toSysOut());
         .to(toTopic, Produced.with(Serdes.String(), Serdes.String()));
     
         return builder.build();

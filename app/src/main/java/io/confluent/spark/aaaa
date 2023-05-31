@@ -1,8 +1,36 @@
-./kafka-console-producer --bootstrap-server localhost:9092 --topic src_topic --property parse.key=true --property key.separator="|"
+./kafka-console-producer --bootstrap-server localhost:9092 --topic tgt_test_topic --property parse.key=true --property key.separator="|"
 
->["replicator",{"topic":"london","partition":0}]|{"offset":125}
->["replicator",{"topic":"london","partition":1}]|{"offset":89}
->["replicator",{"topic":"london","partition":2}]}|{"offset":135}
+["replicator",{"topic":"london","partition":0}]|{"offset":125}
+["replicator",{"topic":"london","partition":1}]|{"offset":89}
+["replicator",{"topic":"london","partition":2}]|{"offset":135}
 
 
 ["replicator",{"topic":"london","partition":2}]}|{"offset":333}
+
+
+./kafka-console-producer --bootstrap-server pkc-e82om.ap-northeast-2.aws.confluent.cloud:9092 --producer.config ~/test/srm.properties --topic srm_test --property parse.key=true --property key.separator="|"
+
+
+
+./kafka-topics --bootstrap-server pkc-e82om.ap-northeast-2.aws.confluent.cloud:9092 --producer.config ~/test/srm.properties --list
+
+
+
+["replicator",{"topic":"london","partition":0}]|{"offset":125}
+["replicator",{"partition":1, "topic":"london"}]|{"offset":89}
+["replicator",{"topic":"london","partition":2}]|{"offset":135}
+
+
+
+./kafka-console-consumer --bootstrap-server localhost:9092 --topic tgt_test_topic --property parse.key=true --property key.separator="|"
+
+
+./kafka-console-producer --bootstrap-server localhost:9092 --topic src_test_topic --property parse.key=true --property key.separator="|"
+
+
+["replicator",{"cluster":"test","topic":"london","partition":0}]|{"offset":225}
+["replicator",{"topic":"london",     "partition":4}]|{"offset":289}
+["replicator",{"topic":"london","partition":2}]|{"offset":235}
+["replicator",{"topic":"london","partition":4}]|{"offset":235}
+["replicator",{"topic":"london","partition":3}]|{"offset":235}
+["replicator",{"cluster":"test","topic":"london","partition":3}]|{"offset":225}
